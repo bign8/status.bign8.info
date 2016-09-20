@@ -6,14 +6,13 @@ import 'dart:async';
 // TODO: load these from localstorage
 Map<String, List<String>> services = {
   "trans": ["translate", "/health"],
-  // "lux": ["docsserver", "/api/v1/health"],
+  "lux": ["docsserver", "/api/v1/health"],
 };
 
 Map<String, String> envs = {
-  "local": "localhost:6070",
-  // "dev": "wk-dev.wdesk.org",
-  // "stage": "sandbox.wdesk.com",
-  // "prod": "app.wdesk.com",
+  "dev": "wk-dev.wdesk.org",
+  "stage": "sandbox.wdesk.com",
+  "prod": "app.wdesk.com",
 };
 
 
@@ -44,14 +43,32 @@ void main() {
 createRow(TableRowElement row, String svc) {
   row.addCell().text = svc;
   for (var env in envs.keys) {
-    DivElement status = new DivElement();
-    new Status(status, env, svc);
-    row.addCell().append(status);
+    row.addCell().append(new StatusElement(env, svc));
     // row.addCell().append(new Status(env, svc));
   }
 }
 
 // TODO: make this extend a DivElement so consumption can be simplified
+class StatusElement extends DivElement {
+
+  StatusElement.created() : super.created() {
+    print("Status Created");
+  }
+
+  factory StatusElement(String env, String svc) {
+    var spot = new DivElement();
+    var load = new DivElement();
+
+    var obj = new DivElement()
+      ..append(spot)
+      ..append(load);
+
+    new Status(spot, env, svc);
+
+    return obj;
+  }
+}
+
 class Status {
   DivElement obj;
   String target;
