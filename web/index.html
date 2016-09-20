@@ -5,26 +5,6 @@
     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
-    <div id="settings" class="cover hide">
-      <div class="cover-content">
-        <button class="click close">&times;</button>
-        <button class="click save">&#x1f4be;</button>
-        <textarea>{
-  "svcz": {
-    "trans": "translate.$domain/health",
-    "lux": "docsserver.$domain/api/v1/health",
-  },
-  "envz": {
-    "dev": "wk-dev.wdesk.org",
-    "stage": "sandbox.wdesk.com",
-    "prod": "app.wdesk.com",
-  },
-  "skip": ["lux-prod"]
-}
-        </textarea>
-      </div>
-    </div>
-    <button id="toggle" class="click open">&#x2699;</button>
     <div id="container"></div>
     <script type="application/dart" src="/main.dart"></script>
     <script src="dart.js"></script>

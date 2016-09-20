@@ -128,6 +128,8 @@ table tr > td:first-child {
   font-family: monospace;
   outline: none;
   resize: none;
+  white-space: pre;
+  word-wrap: normal;
 }
 
 /* The Close Button */
@@ -155,4 +157,8 @@ table tr > td:first-child {
 .save {
   bottom: 12px;
   right: 14px;
+}
+.open {
+  top: 12px;
+  left: 14px;
 }
