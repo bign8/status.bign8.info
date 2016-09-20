@@ -66,6 +66,15 @@ table tr > td:first-child {
   background-color: #ee2724;
 }
 
+.status-ignore {
+  color: #595959;
+  border-color: #595959;
+  background-color: #b2b2b2;
+}
+.status-ignore:hover {
+  background-color: #8a8a8a;
+}
+
 .status-loading {
   border: 5px dashed rgba(0, 0, 0, 0.5);
   animation: rotate 10s infinite linear;

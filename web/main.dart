@@ -15,6 +15,7 @@ Map<String, String> envs = {
   "prod": "app.wdesk.com",
 };
 
+Set<String> skip = new Set<String>()..add('lux-prod');
 
 void main() {
   DivElement container = document.getElementById("container");
@@ -75,22 +76,22 @@ class Status {
   Timer last;
 
   Status(this.obj, String env, String svc) {
-    obj.classes.addAll(['status', 'status-loading']);
+    obj.classes.add('status');
     obj.onClick.listen((e) => run());
-    var e = envs[env], s = services[svc];
-    this.target = "https://";
-    if (e.contains("localhost")) {
-      this.target = "http://";
+    var s = services[svc];
+    this.target = "https://" + s[0] + "." + envs[env] + s[1];
+
+    if (skip.contains(env + "-" + svc) || skip.contains(svc + "-" + env)) {
+      obj.classes.add('status-ignore');
     } else {
-      this.target += s[0] + ".";
+      obj.classes.add('status-loading');
+      run();
     }
-    this.target += e + s[1];
-    run();
   }
 
   done(int status) {
     if (last != null) last.cancel();
-    obj.classes.removeAll(['status-loading', 'status-ok', 'status-warn', 'status-bad']);
+    obj.classes.removeAll(['status-loading', 'status-ignore', 'status-ok', 'status-warn', 'status-bad']);
     if (200 <= status && status < 300) {
       obj.classes.add('status-ok');
     } else if (status == 429) {
@@ -100,15 +101,12 @@ class Status {
     }
 
     // Set text + timeouts based on response
-    var time = new Duration(minutes: 1);
     if (status < 200) {
       obj.text = "err";
-      time = new Duration(minutes: 15);
     } else {
       obj.text = status.toString();
     }
-
-    last = new Timer(time, run);
+    last = new Timer(new Duration(minutes: 1), run);
   }
 
   // after a timeout, wait for an animation frame to actually run things
