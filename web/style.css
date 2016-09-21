@@ -168,6 +168,7 @@ table tr > td:first-child {
 
 /* loaders */
 .loader {
+  animation: rotate 20s infinite linear;
   width: 120px;
   height: 120px;
   position: relative;
@@ -210,16 +211,17 @@ table tr > td:first-child {
 
 /* TODO: manually fire animation from dart */
 @keyframes rota {
-  0%   { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0%   { transform: rotate(000deg); }
+  50%  { transform: rotate(360deg); }
+  100% { transform: rotate(000deg); }
 }
-
 @keyframes fill {
   0%        { opacity: 0; }
-  50%, 100% { opacity: 1; }
+  25%       { opacity: 1; }
+  75%, 100% { opacity: 0; }
 }
-
 @keyframes mask {
   0%        { opacity: 1; }
-  50%, 100% { opacity: 0; }
+  25%       { opacity: 0; }
+  75%, 100% { opacity: 1; }
 }

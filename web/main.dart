@@ -122,7 +122,6 @@ createRow(Settings optz, TableRowElement row, String svc) {
   row.addCell().text = svc;
   for (var env in optz.envz.keys) {
     row.addCell().append(new StatusElement(optz, env, svc));
-    // row.addCell().append(new Status(env, svc));
   }
 }
 
