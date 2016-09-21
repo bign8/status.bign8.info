@@ -99,9 +99,8 @@ class Settings {
 
 void main() {
   Settings options = new Settings();
-  DivElement container = document.getElementById("container");
   TableElement table = new TableElement();
-  container.children.add(table);
+  document.body.append(table);
   options.onChange.listen((e) => draw(table, options));
   draw(table, options);
 }
@@ -136,11 +135,16 @@ class StatusElement extends DivElement {
 
   factory StatusElement(Settings optz, String env, String svc) {
     var spot = new DivElement();
-    var load = new DivElement();
+    var load = new DivElement()..classes.add("loader");
 
     var obj = new DivElement()
+      ..classes.add("wrap")
       ..append(spot)
       ..append(load);
+
+    load.append(new DivElement()..classes.addAll(["spinner", "pie"]));
+    load.append(new DivElement()..classes.addAll(["filler", "pie"]));
+    load.append(new DivElement()..classes.add("mask"));
 
     new Status(optz, spot, env, svc);
 

@@ -25,6 +25,10 @@ table tr > td:first-child {
   border-left: none;
 }*/
 
+.wrap {
+  margin: 20px;
+}
+
 .status {
   display: block;
   width: 100px;
@@ -34,7 +38,6 @@ table tr > td:first-child {
   text-align: center;
   font-weight: bold;
   font-size: 25px;
-  margin: 20px;
   border: 5px solid transparent;
   float: left;
 }
@@ -161,4 +164,62 @@ table tr > td:first-child {
 .open {
   top: 12px;
   left: 14px;
+}
+
+/* loaders */
+.loader {
+  width: 120px;
+  height: 120px;
+  position: relative;
+  background: white;
+  z-index: -1;
+  top: -5px;
+  left: -5px;
+}
+.loader .pie {
+  width: 50%;
+  height: 100%;
+  position: absolute;
+  border: 5px solid #DFDFDF;
+  transform-origin: 100% 50%;
+  box-sizing: border-box;
+}
+.loader .spinner {
+  border-radius: 125px 0 0 125px;
+  z-index: 200;
+  border-right: none;
+  animation: rota 10s linear infinite;
+}
+.loader .filler {
+  border-radius: 0 125px 125px 0;
+  z-index: 100;
+  border-left: none;
+  animation: fill 10s steps(1, end) infinite;
+  left: 50%;
+  opacity: 0;
+}
+.loader .mask {
+  width: 50%;
+  height: 100%;
+  position: absolute;
+  z-index: 300;
+  opacity: 1;
+  background: inherit;
+  animation: mask 10s steps(1, end) infinite;
+}
+
+/* TODO: manually fire animation from dart */
+@keyframes rota {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes fill {
+  0%        { opacity: 0; }
+  50%, 100% { opacity: 1; }
+}
+
+@keyframes mask {
+  0%        { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
