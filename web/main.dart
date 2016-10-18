@@ -206,7 +206,7 @@ class Status {
 
 Future<int> checker(String url) {
   var completer = new Completer<int>(), xhr = new HttpRequest();
-  xhr.open('GET', "http://localhost:8081/proxy?url=" + url, async: true);
+  xhr.open('GET', window.location.origin + "/proxy?url=" + url, async: true);
   xhr.onLoad.listen((e) => completer.complete(e.target.status));
   xhr.onError.listen((e) => completer.complete(e.target.status));
   xhr.send();
