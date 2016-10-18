@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"strings"
 )
@@ -60,6 +61,19 @@ func index(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func random(w http.ResponseWriter, r *http.Request) {
+	switch rand.Intn(10) {
+	case 0:
+		fallthrough
+	case 1:
+		w.WriteHeader(http.StatusInternalServerError)
+	case 2:
+		w.WriteHeader(http.StatusTooManyRequests)
+	default:
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func main() {
 	flag.Parse()
 
@@ -69,6 +83,7 @@ func main() {
 	}
 	client := &http.Client{Transport: tr}
 	http.Handle("/proxy", &proxy{client: client})
+	http.HandleFunc("/rand", random)
 	http.HandleFunc("/", index)
 
 	fmt.Println("Serving from " + *port)

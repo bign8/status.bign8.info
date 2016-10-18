@@ -168,7 +168,7 @@ table tr > td:first-child {
 
 /* loaders */
 .loader {
-  animation: rotate 20s infinite linear;
+  /*animation: rotate 20s infinite linear;*/
   width: 120px;
   height: 120px;
   position: relative;
@@ -189,13 +189,13 @@ table tr > td:first-child {
   border-radius: 125px 0 0 125px;
   z-index: 200;
   border-right: none;
-  animation: rota 10s linear infinite;
+  /*animation: rota 10s linear infinite;*/
 }
 .loader .filler {
   border-radius: 0 125px 125px 0;
   z-index: 100;
   border-left: none;
-  animation: fill 10s steps(1, end) infinite;
+  /*animation: fill 10s steps(1, end) infinite;*/
   left: 50%;
   opacity: 0;
 }
@@ -206,7 +206,7 @@ table tr > td:first-child {
   z-index: 300;
   opacity: 1;
   background: inherit;
-  animation: mask 10s steps(1, end) infinite;
+  /*animation: mask 10s steps(1, end) infinite;*/
 }
 
 /* TODO: manually fire animation from dart */

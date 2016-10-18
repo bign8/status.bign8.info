@@ -4,21 +4,6 @@ import 'dart:convert';
 
 // TODO: favicon http://stackoverflow.com/questions/260857/changing-website-favicon-dynamically
 
-/*
-{
-  "svcz": {
-    "trans": "translate.$domain/health",
-    "lux": "docsserver.$domain/api/v1/health"
-  },
-  "envz": {
-    "dev": "wk-dev.wdesk.org",
-    "stage": "sandbox.wdesk.com",
-    "prod": "app.wdesk.com"
-  },
-  "skip": ["lux-prod"]
-}
- */
-
 class Settings {
   static final Settings _singleton = new Settings._internal();
   factory Settings() => _singleton;
@@ -61,6 +46,29 @@ class Settings {
     encoder = new JsonEncoder.withIndent(' ');
     if (window.localStorage.containsKey('status'))
       assign(window.localStorage['status']);
+    else
+      assign("""{
+       "envz": {
+        "Google": "www.google.com",
+        "Twitter": "www.twitter.com",
+        "Facebook": "www.facebook.com",
+        "Github": "github.com",
+        "Snapchat": "www.snapchat.com",
+        "Instagram": "www.instagram.com"
+       },
+       "svcz": {
+        "Robots": "https://\$/robots.txt",
+        "Humans": "https://\$/humans.txt",
+        "service-1": "@/rand#demo-only",
+        "service-2": "@/rand#demo-only",
+        "service-3": "@/rand#demo-only"
+       },
+       "skip": [
+        "Instagram-Humans",
+        "Snapchat-Humans",
+        "Twitter-Humans"
+       ]
+      }""");
   }
 
   assign(String blob, {bool again: false}) {
@@ -134,18 +142,19 @@ class StatusElement extends DivElement {
 
   factory StatusElement(Settings optz, String env, String svc) {
     var spot = new DivElement();
-    var load = new DivElement()..classes.add("loader");
+    var load = new DivElement();//..classes.add("loader");
 
     var obj = new DivElement()
       ..classes.add("wrap")
       ..append(spot)
       ..append(load);
 
-    load.append(new DivElement()..classes.addAll(["spinner", "pie"]));
-    load.append(new DivElement()..classes.addAll(["filler", "pie"]));
-    load.append(new DivElement()..classes.add("mask"));
+    // load.append(new DivElement()..classes.addAll(["spinner", "pie"]));
+    // load.append(new DivElement()..classes.addAll(["filler", "pie"]));
+    // load.append(new DivElement()..classes.add("mask"));
 
-    new Status(optz, spot, env, svc);
+    var spinner = new Spinner(load);
+    new Status(optz, spot, env, svc, spinner);
 
     return obj;
   }
@@ -155,11 +164,13 @@ class Status {
   DivElement obj;
   String target;
   Timer last;
+  Spinner spin;
 
-  Status(Settings optz, this.obj, String env, String svc) {
+  Status(Settings optz, this.obj, String env, String svc, this.spin) {
     obj.classes.add('status');
     obj.onClick.listen((e) => run());
-    this.target = "https://" + optz.svcz[svc].replaceFirst("\$domain", optz.envz[env]);
+    this.target = optz.svcz[svc].replaceFirst("\$", optz.envz[env]);
+    this.target = this.target.replaceFirst("@", window.location.origin);
 
     if (optz.skip.contains(env + "-" + svc) || optz.skip.contains(svc + "-" + env)) {
       obj.classes.add('status-ignore');
@@ -200,4 +211,22 @@ Future<int> checker(String url) {
   xhr.onError.listen((e) => completer.complete(e.target.status));
   xhr.send();
   return completer.future;
+}
+
+class Spinner {
+  DivElement loader, spinner, filler, mask;
+  StreamController done = new StreamController.broadcast();
+
+  Spinner(this.loader) {
+    spinner = new DivElement()..classes.addAll(["spinner", "pie"]);
+    filler = new DivElement()..classes.addAll(["filler", "pie"]);
+    mask = new DivElement()..classes.add("mask");
+    this.loader..append(spinner)..append(filler)..append(mask)..classes.add("loader");
+  }
+
+  start(Duration dur) {
+
+  }
+
+  Stream get onComplete => done.stream;
 }
