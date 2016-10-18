@@ -1,8 +1,16 @@
 import 'dart:html';
+import 'dart:math';
 import 'dart:async';
 import 'dart:convert';
 
 // TODO: favicon http://stackoverflow.com/questions/260857/changing-website-favicon-dynamically
+
+final host = () {
+  if (window.location.origin.contains("localhost")) {
+    return "http://localhost:8081";
+  }
+  return window.location.origin;
+}();
 
 class Settings {
   static final Settings _singleton = new Settings._internal();
@@ -160,6 +168,14 @@ class StatusElement extends DivElement {
   }
 }
 
+var _rander = new Random();
+
+// Produce a value between 30s - 1m30s
+Duration jittered() {
+  var val = _rander.nextInt(60);
+  return new Duration(seconds: val + 30);
+}
+
 class Status {
   DivElement obj;
   String target;
@@ -170,7 +186,7 @@ class Status {
     obj.classes.add('status');
     obj.onClick.listen((e) => run());
     this.target = optz.svcz[svc].replaceFirst("\$", optz.envz[env]);
-    this.target = this.target.replaceFirst("@", window.location.origin);
+    this.target = this.target.replaceFirst("@", host);
 
     if (optz.skip.contains(env + "-" + svc) || optz.skip.contains(svc + "-" + env)) {
       obj.classes.add('status-ignore');
@@ -197,7 +213,7 @@ class Status {
     } else {
       obj.text = status.toString();
     }
-    last = new Timer(new Duration(minutes: 1), run);
+    last = new Timer(jittered(), run);
   }
 
   // after a timeout, wait for an animation frame to actually run things
@@ -206,7 +222,7 @@ class Status {
 
 Future<int> checker(String url) {
   var completer = new Completer<int>(), xhr = new HttpRequest();
-  xhr.open('GET', window.location.origin + "/proxy?url=" + url, async: true);
+  xhr.open('GET', host + "/proxy?url=" + url, async: true);
   xhr.onLoad.listen((e) => completer.complete(e.target.status));
   xhr.onError.listen((e) => completer.complete(e.target.status));
   xhr.send();
