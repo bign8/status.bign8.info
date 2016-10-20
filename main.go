@@ -77,7 +77,6 @@ func random(w http.ResponseWriter, r *http.Request) {
 func main() {
 	flag.Parse()
 
-	fmt.Printf("TLS InsecureSkipVerify: %t\n", *skip)
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: *skip},
 	}
@@ -86,7 +85,11 @@ func main() {
 	http.HandleFunc("/rand", random)
 	http.HandleFunc("/", index)
 
-	fmt.Println("Serving from " + *port)
+	if *skip {
+		fmt.Println("Serving from " + *port + " skipping SSL validation")
+	} else {
+		fmt.Println("Serving from " + *port + " validating SSL")
+	}
 	if err := http.ListenAndServe(*port, nil); err != nil {
 		fmt.Println(err.Error())
 	}
