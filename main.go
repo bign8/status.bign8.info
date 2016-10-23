@@ -8,19 +8,44 @@ import (
 	"crypto/tls"
 	"flag"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"strings"
+	"sync"
+	"time"
 )
 
 var (
 	port = flag.String("port", ":8081", "port to serve from")
 	skip = flag.Bool("skip", true, "should the proxy skip ssl verify")
+	tout = flag.Duration("tout", time.Second, "cache expiration timeout")
 )
+
+type req struct {
+	code int
+	body []byte
+	head http.Header
+	tick *time.Timer
+}
 
 type proxy struct {
 	client *http.Client
+	cache  map[string]*req
+	lock   sync.RWMutex
+}
+
+func cleanURL(raw string) (string, error) {
+	loc, err := url.Parse(raw)
+	if err == nil {
+		loc.Fragment = ""
+		loc.Opaque = ""
+		loc.User = nil
+		loc.RawQuery = ""
+		raw = loc.String()
+	}
+	return raw, err
 }
 
 func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -30,19 +55,52 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("No URL query provided"))
 		return
 	}
-	res, err := p.client.Get(url)
+	url, err := cleanURL(url)
 	if err != nil {
-		w.WriteHeader(http.StatusBadGateway)
-		w.Write([]byte("Error getting: " + err.Error()))
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Invalid URL in query"))
 		return
 	}
-	for key, value := range res.Header {
+	p.lock.RLock()
+	obj, ok := p.cache[url]
+	p.lock.RUnlock()
+
+	if !ok {
+		res, err := p.client.Get(url)
+		if err != nil {
+			w.WriteHeader(http.StatusBadGateway)
+			w.Write([]byte("Error getting: " + err.Error()))
+			return
+		}
+		obj = &req{
+			code: res.StatusCode,
+			head: res.Header,
+			tick: time.AfterFunc(*tout, func() {
+				p.lock.Lock()
+				delete(p.cache, url)
+				p.lock.Unlock()
+			}),
+		}
+		obj.body, err = ioutil.ReadAll(res.Body)
+		res.Body.Close()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("Error copying: " + err.Error()))
+			return
+		}
+		p.lock.Lock()
+		p.cache[url] = obj
+		p.lock.Unlock()
+	} else {
+		obj.tick.Reset(*tout)
+	}
+
+	for key, value := range obj.head {
 		w.Header()[key] = value
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.WriteHeader(res.StatusCode)
-	defer res.Body.Close()
-	io.Copy(w, res.Body)
+	w.WriteHeader(obj.code)
+	w.Write(obj.body)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -72,19 +130,23 @@ func random(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusOK)
 	}
+	// w.Write([]byte(strconv.Itoa(rand.Int())))
 }
 
 func main() {
 	flag.Parse()
-
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: *skip},
-	}
-	client := &http.Client{Transport: tr}
-	http.Handle("/proxy", &proxy{client: client})
+	http.Handle("/proxy", &proxy{
+		client: &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: *skip,
+				},
+			},
+		},
+		cache: make(map[string]*req),
+	})
 	http.HandleFunc("/rand", random)
 	http.HandleFunc("/", index)
-
 	if *skip {
 		fmt.Println("Serving from " + *port + " skipping SSL validation")
 	} else {
