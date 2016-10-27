@@ -2,6 +2,8 @@ package main
 
 //go:generate pub build
 //go:generate cp web/main.dart build/web
+//go:generate sass build/web/style.scss:build/web/style.css -C -t compressed --sourcemap=none
+//go:generate rm build/web/style.scss
 //go:generate go-bindata -o static.go -prefix build/web build/web
 
 import (
@@ -12,6 +14,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -130,7 +133,7 @@ func random(w http.ResponseWriter, r *http.Request) {
 	default:
 		w.WriteHeader(http.StatusOK)
 	}
-	// w.Write([]byte(strconv.Itoa(rand.Int())))
+	w.Write([]byte(strconv.Itoa(rand.Int())))
 }
 
 func main() {
