@@ -6,12 +6,12 @@
   </head>
   <body>
     <script type="application/dart" src="/main.dart" id="mojo"></script>
-    <script type="application/javascript">
+    <script>
       !function(d) {
         if (navigator.userAgent.indexOf('(Dart)') === -1) {
-          var obj = d.getElementById("mojo"), next = d.createElement('script');
-          next.src = obj.src.replace(/\.dart(?=\?|$)/, '.dart.js');
-          obj.parentNode.replaceChild(next, obj);
+          var a = d.getElementById("mojo"), b = d.createElement('script');
+          b.src = '/main.dart.js';
+          a.parentNode.replaceChild(b, a);
         }
       }(document);
     </script>
