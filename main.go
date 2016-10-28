@@ -11,6 +11,7 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"expvar"
 	"flag"
 	"fmt"
 	"image"
@@ -20,7 +21,9 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	_ "net/http/pprof"
 	"net/url"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -44,6 +47,10 @@ type proxy struct {
 	client *http.Client
 	cache  map[string]*req
 	lock   sync.RWMutex
+	ctr    *expvar.Int
+	act    *expvar.Int
+	hit    *expvar.Int
+	mis    *expvar.Int
 }
 
 func cleanURL(raw string) (string, error) {
@@ -71,11 +78,13 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Invalid URL in query"))
 		return
 	}
+	p.ctr.Add(1)
 	p.lock.RLock()
 	obj, ok := p.cache[url]
 	p.lock.RUnlock()
 
 	if !ok {
+		p.mis.Add(1)
 		res, err := p.client.Get(url)
 		if err != nil {
 			w.WriteHeader(http.StatusBadGateway)
@@ -88,6 +97,7 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			tick: time.AfterFunc(*tout, func() {
 				p.lock.Lock()
 				delete(p.cache, url)
+				p.act.Set(int64(len(p.cache)))
 				p.lock.Unlock()
 			}),
 		}
@@ -100,8 +110,10 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		p.lock.Lock()
 		p.cache[url] = obj
+		p.act.Set(int64(len(p.cache)))
 		p.lock.Unlock()
 	} else {
+		p.hit.Add(1)
 		obj.tick.Reset(*tout)
 	}
 
@@ -201,7 +213,11 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	flag.Parse()
-	http.Handle("/proxy", &proxy{
+	runStat := expvar.NewMap("runtime")
+	runStat.Set("routines", expvar.Func(func() interface{} { return runtime.NumGoroutine() }))
+	runStat.Set("cgo", expvar.Func(func() interface{} { return runtime.NumCgoCall() }))
+
+	proxier := &proxy{
 		client: &http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: &tls.Config{
@@ -210,10 +226,22 @@ func main() {
 			},
 		},
 		cache: make(map[string]*req),
-	})
+		ctr:   &expvar.Int{},
+		act:   &expvar.Int{},
+		hit:   &expvar.Int{},
+		mis:   &expvar.Int{},
+	}
+	proxyStat := expvar.NewMap("proxy")
+	proxyStat.Set("total", proxier.ctr)
+	proxyStat.Set("miss", proxier.mis)
+	proxyStat.Set("size", proxier.act)
+	proxyStat.Set("hit", proxier.hit)
+
+	http.Handle("/proxy", proxier)
 	http.HandleFunc("/rand", random)
 	http.HandleFunc("/favicon.png", favicon)
 	http.HandleFunc("/", index)
+
 	if *skip {
 		fmt.Println("Serving from " + *port + " skipping SSL validation")
 	} else {
