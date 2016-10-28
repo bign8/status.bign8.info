@@ -9,9 +9,14 @@ package main
 //go:generate go-bindata -o static.go -prefix build/web build/web
 
 import (
+	"bytes"
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"image"
+	"image/color"
+	"image/draw"
+	"image/png"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -138,6 +143,62 @@ func random(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(strconv.Itoa(rand.Int())))
 }
 
+// https://blog.golang.org/go-imagedraw-package
+type circle struct {
+	r int         // radius
+	f color.Color // fill
+}
+
+func (c *circle) ColorModel() color.Model { return color.RGBAModel }
+func (c *circle) Bounds() image.Rectangle { return image.Rect(-c.r, -c.r, c.r, c.r) }
+func (c *circle) At(x, y int) color.Color {
+	xx, yy, rr := float64(x)+0.5, float64(y)+0.5, float64(c.r)
+	if xx*xx+yy*yy < rr*rr {
+		return c.f
+	}
+	return color.Alpha{0}
+}
+
+// http://www.webpagefx.com/web-design/hex-to-rgb/
+var colors = map[string][]byte{
+	"green": icon(
+		&color.RGBA{51, 153, 0, 255},   // #339900
+		&color.RGBA{133, 214, 51, 255}, // #85d633
+	),
+	"red": icon(
+		&color.RGBA{167, 27, 25, 255}, // #a71b19
+		&color.RGBA{241, 82, 80, 255}, // #f15250
+	),
+	"yellow": icon(
+		&color.RGBA{242, 108, 33, 255}, // #f26c21
+		&color.RGBA{252, 189, 69, 255}, // #fcbd45
+	),
+	"": icon(
+		&color.Gray{89},  // #595959
+		&color.Gray{178}, // #b2b2b2
+	),
+}
+
+func icon(ring, fill color.Color) []byte {
+	top := image.Point{-8, -8}
+	icon := image.NewRGBA(image.Rect(0, 0, 16, 16))
+	draw.Draw(icon, icon.Bounds(), &circle{r: 8, f: ring}, top, draw.Src)
+	draw.Draw(icon, icon.Bounds(), &circle{r: 6, f: fill}, top, draw.Over)
+	bits := bytes.NewBuffer(make([]byte, 0, 178)) // grey: 169 / color: 178
+	if err := png.Encode(bits, icon); err != nil {
+		panic(err)
+	}
+	return bits.Bytes()
+}
+
+func favicon(w http.ResponseWriter, r *http.Request) {
+	if bits, ok := colors[r.URL.Query().Get("color")]; !ok {
+		w.Write(colors[""])
+	} else {
+		w.Write(bits)
+	}
+}
+
 func main() {
 	flag.Parse()
 	http.Handle("/proxy", &proxy{
@@ -151,6 +212,7 @@ func main() {
 		cache: make(map[string]*req),
 	})
 	http.HandleFunc("/rand", random)
+	http.HandleFunc("/favicon.png", favicon)
 	http.HandleFunc("/", index)
 	if *skip {
 		fmt.Println("Serving from " + *port + " skipping SSL validation")
