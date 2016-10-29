@@ -159,19 +159,22 @@ func random(w http.ResponseWriter, r *http.Request) {
 }
 
 // https://blog.golang.org/go-imagedraw-package
-type circle struct {
-	r int         // radius
-	f color.Color // fill
-}
+type circle int
 
-func (c *circle) ColorModel() color.Model { return color.RGBAModel }
-func (c *circle) Bounds() image.Rectangle { return image.Rect(-c.r, -c.r, c.r, c.r) }
-func (c *circle) At(x, y int) color.Color {
-	xx, yy, rr := float64(x)+0.5, float64(y)+0.5, float64(c.r)
-	if xx*xx+yy*yy < rr*rr {
-		return c.f
+func (c circle) ColorModel() color.Model { return color.AlphaModel }
+func (c circle) Bounds() image.Rectangle {
+	r := int(c)
+	return image.Rect(-r, -r, r, r)
+}
+func (c circle) At(x, y int) color.Color {
+	xx, yy, rr := float64(x)+0.5, float64(y)+0.5, float64(c)
+	if v := xx*xx + yy*yy - rr*rr; v < 0 {
+		return color.Alpha{255} // inside
+	} else if v > rr {
+		return color.Alpha{0} // outside
+	} else {
+		return color.Alpha{uint8(255 * float64(1.0-v/rr))}
 	}
-	return color.Alpha{0}
 }
 
 // http://www.webpagefx.com/web-design/hex-to-rgb/
@@ -197,9 +200,9 @@ var colors = map[string][]byte{
 func icon(ring, fill color.Color) []byte {
 	top := image.Point{-8, -8}
 	icon := image.NewRGBA(image.Rect(0, 0, 16, 16))
-	draw.Draw(icon, icon.Bounds(), &circle{r: 8, f: ring}, top, draw.Src)
-	draw.Draw(icon, icon.Bounds(), &circle{r: 6, f: fill}, top, draw.Over)
-	bits := bytes.NewBuffer(make([]byte, 0, 178)) // grey: 169 / color: 178
+	draw.DrawMask(icon, icon.Bounds(), image.NewUniform(ring), image.ZP, circle(8), top, draw.Src)
+	draw.DrawMask(icon, icon.Bounds(), image.NewUniform(fill), image.ZP, circle(7), top, draw.Over)
+	bits := bytes.NewBuffer(make([]byte, 0, 255))
 	if err := png.Encode(bits, icon); err != nil {
 		panic(err)
 	}
