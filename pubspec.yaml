@@ -6,7 +6,10 @@ description: Matrics Environment Monitor
 environment:
   sdk: ">=1.8.0 <2.0.0"
 dependencies:
+  browser: any
   dart_sass_transformer: any
+  dart_to_js_script_rewriter: any
 transformers:
+  - dart_to_js_script_rewriter
   - dart_sass_transformer:
       style: compressed
