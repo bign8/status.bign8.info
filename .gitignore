@@ -1,5 +1,8 @@
-.pub
+build/
+packages/
+pubspec.lock
+.buildlog
 .packages
-packages
-build
+.project
+.pub/
 status
