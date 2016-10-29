@@ -5,3 +5,8 @@ homepage: http://status.bign8.info/
 description: Matrics Environment Monitor
 environment:
   sdk: ">=1.8.0 <2.0.0"
+dependencies:
+  dart_sass_transformer: any
+transformers:
+  - dart_sass_transformer:
+      style: compressed
