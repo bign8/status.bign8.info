@@ -7,7 +7,7 @@ package main
 //go:generate sed -i.bak -e /stylesheet/{ -e rbuild/web/style.css -e d -e } build/web/index.html
 //go:generate sed -i.bak -e /H.kq/d -e /createRuntimeType/d build/web/main.dart.js
 //go:generate rm build/web/style.scss build/web/style.css.bak build/web/style.css build/web/index.html.bak
-//go:generate go-bindata -o static.go -prefix build/web build/web
+//go:generate go-bindata -o build/static.go -pkg build -prefix build/web build/web
 
 import (
 	"bytes"
@@ -29,6 +29,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"./build" // generated source files for website
 )
 
 var (
@@ -131,7 +133,7 @@ func index(w http.ResponseWriter, r *http.Request) {
 	if uri == "/" {
 		uri = "/index.html"
 	}
-	bits, err := Asset(uri[1:])
+	bits, err := build.Asset(uri[1:])
 	if err != nil {
 		http.NotFound(w, r)
 	} else {
