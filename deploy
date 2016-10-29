@@ -2,10 +2,11 @@
 
 go generate
 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
-upx status
-scp -i ~/Atlas.pem status ec2-user@status.bign8.info:/usr/sbin/status-server
+# docker run -v $PWD:/data --rm lalyos/upx status # upx status
+scp -i ~/Atlas.pem status ec2-user@status.bign8.info:/usr/sbin/status-server.new
 ssh -T -i ~/Atlas.pem ec2-user@status.bign8.info <<EOF
   sudo kill -9 \$(sudo lsof -ti tcp:8081)
+  sudo cp /usr/sbin/status-server.new /usr/sbin/status-server
   sudo nohup status-server > status.out 2> status.err < /dev/null &
   echo "Deploy Complete"
 EOF
