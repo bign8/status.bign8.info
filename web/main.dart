@@ -3,7 +3,28 @@ import 'dart:math';
 import 'dart:async';
 import 'dart:convert';
 
-// TODO: favicon http://stackoverflow.com/questions/260857/changing-website-favicon-dynamically
+enum State { UNKNOWN, GREEN, YELLOW, RED }
+
+String color(State s) {
+  switch (s) {
+    case State.GREEN: return "green";
+    case State.YELLOW: return "yellow";
+    case State.RED: return "red";
+    default: return "gray";
+  }
+}
+
+class Application {
+  set state(State state) => _favicon.href = "$host/favicon.png?color=${color(state)}";
+  final LinkElement _favicon = () {
+    List<Node> links = document.getElementsByTagName("link");
+    for (var link in links) if (link.attributes["rel"] == "icon") return link;
+  }();
+
+  Application() {
+    state = State.UNKNOWN;
+  }
+}
 
 final host = () {
   if (window.location.origin.contains("localhost")) {
