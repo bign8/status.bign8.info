@@ -117,27 +117,69 @@ void main() {
   Settings options = new Settings();
   TableElement table = new TableElement();
   document.body.append(table);
-  options.onChange.listen((e) => draw(table, options));
-  draw(table, options);
+  new Monitor(table, options);
 }
 
-draw(TableElement table, Settings optz) {
-  table.setInnerHtml(''); // clear
-  TableRowElement thead = table.createTHead().addRow();
-  thead.addCell(); // empty corner
-  for (var env in optz.envz.keys) {
-    thead.addCell().text = env;
-  }
-  TableSectionElement tbody = table.createTBody();
-  for (var key in optz.svcz.keys) {
-    createRow(optz, tbody.addRow(), key);
-  }
-}
+class Monitor {
+  TableElement table;
+  Settings opts;
+  List<StatusElement> statuses;
+  Map<String, int> status;
 
-createRow(Settings optz, TableRowElement row, String svc) {
-  row.addCell().text = svc;
-  for (var env in optz.envz.keys) {
-    row.addCell().append(new StatusElement(optz, env, svc));
+  Monitor(this.table, this.opts) {
+    statuses = new List<StatusElement>();
+    status = new Map<String, int>();
+    opts.onChange.listen((e) => draw());
+    draw();
+  }
+
+  draw() {
+    // TODO(bign8): teardown existing items in statuses
+    // TODO(bign8): do this intelligently... don't re-draw things that already exist
+    table.setInnerHtml('');
+    TableRowElement thead = table.createTHead().addRow();
+    thead.addCell(); // empty corner
+    for (var env in opts.envz.keys) {
+      thead.addCell().text = env;
+    }
+    TableSectionElement tbody = table.createTBody();
+    for (var key in opts.svcz.keys) {
+      TableRowElement row = tbody.addRow();
+      row.addCell().text = key;
+      for (var env in opts.envz.keys) {
+        StatusElement nxt = new StatusElement(opts, env, key, this);
+        statuses.add(nxt);
+        row.addCell().append(nxt);
+      }
+    }
+  }
+
+  setState(String slug, int val) {
+    status[slug] = val;
+    int active = val;
+    for (var val in status.values) {
+      if (active == 200) {
+        active = val;
+      } else if (val == 0){
+        active = 500;
+      } else if (val > active){
+        active = val;
+      }
+    }
+    var color = "gray";
+    if (active == 200) {
+      color = "green";
+    } else if (active == 429) {
+      color = "yellow";
+    } else {
+      color = "red";
+    }
+    List<Node> links = document.getElementsByTagName("link");
+    for (var link in links) {
+      if (link.attributes["rel"] == "icon") {
+        link.attributes["href"] = "$host/favicon.png?color=$color";
+      }
+    }
   }
 }
 
@@ -148,7 +190,7 @@ class StatusElement extends DivElement {
     print("Status Created");
   }
 
-  factory StatusElement(Settings optz, String env, String svc) {
+  factory StatusElement(Settings optz, String env, String svc, Monitor mon) {
     var spot = new DivElement();
     var load = new DivElement();//..classes.add("loader");
 
@@ -162,7 +204,7 @@ class StatusElement extends DivElement {
     // load.append(new DivElement()..classes.add("mask"));
 
     var spinner = new Spinner(load);
-    new Status(optz, spot, env, svc, spinner);
+    new Status(optz, spot, env, svc, spinner, mon);
 
     return obj;
   }
@@ -181,8 +223,11 @@ class Status {
   String target;
   Timer last;
   Spinner spin;
+  Monitor mon;
+  String slug;
 
-  Status(Settings optz, this.obj, String env, String svc, this.spin) {
+  Status(Settings optz, this.obj, String env, String svc, this.spin, this.mon) {
+    slug = "$svc-$env";
     obj.classes.add('status');
     obj.onClick.listen((e) => run());
     this.target = optz.svcz[svc].replaceFirst("\$", optz.envz[env]);
@@ -206,6 +251,7 @@ class Status {
     } else {
       obj.classes.add('status-bad');
     }
+    mon.setState(slug, status);
 
     // Set text + timeouts based on response
     if (status < 200) {
