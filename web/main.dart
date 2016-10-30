@@ -7,18 +7,26 @@ enum State { UNKNOWN, GREEN, YELLOW, RED }
 
 String color(State s) {
   switch (s) {
-    case State.GREEN: return "green";
-    case State.YELLOW: return "yellow";
-    case State.RED: return "red";
-    default: return "gray";
+    case State.GREEN:
+      return "green";
+    case State.YELLOW:
+      return "yellow";
+    case State.RED:
+      return "red";
+    default:
+      return "gray";
   }
 }
 
 class Application {
-  set state(State state) => _favicon.href = "$host/favicon.png?color=${color(state)}";
-  final LinkElement _favicon = () {
-    List<Node> links = document.getElementsByTagName("link");
-    for (var link in links) if (link.attributes["rel"] == "icon") return link;
+  final _host = window.location.origin.contains("localhost")
+      ? "http://localhost:8081"
+      : window.location.origin;
+
+  set state(State s) => _icon.href = "$_host/favicon.png?color=${color(s)}";
+  final LinkElement _icon = () {
+    List<LinkElement> links = document.getElementsByTagName("link");
+    for (var link in links) if (link.rel == "icon") return link;
   }();
 
   Application() {
@@ -61,13 +69,11 @@ class Settings {
     input = new TextAreaElement();
     dialog = new DivElement()
       ..classes.addAll(['cover', 'hide'])
-      ..append(
-        new DivElement()
-          ..classes.add('cover-content')
-          ..append(close)
-          ..append(save)
-          ..append(input)
-      );
+      ..append(new DivElement()
+        ..classes.add('cover-content')
+        ..append(close)
+        ..append(save)
+        ..append(input));
     document.body.append(dialog);
     document.body.append(open);
 
@@ -181,9 +187,9 @@ class Monitor {
     for (var val in status.values) {
       if (active == 200) {
         active = val;
-      } else if (val == 0){
+      } else if (val == 0) {
         active = 500;
-      } else if (val > active){
+      } else if (val > active) {
         active = val;
       }
     }
@@ -195,25 +201,21 @@ class Monitor {
     } else {
       color = "red";
     }
-    List<Node> links = document.getElementsByTagName("link");
-    for (var link in links) {
-      if (link.attributes["rel"] == "icon") {
-        link.attributes["href"] = "$host/favicon.png?color=$color";
-      }
-    }
+
+    for (var link in document.getElementsByTagName("link"))
+      if (link.rel == "icon") link.href = "$host/favicon.png?color=$color";
   }
 }
 
 // TODO: make this extend a DivElement so consumption can be simplified
 class StatusElement extends DivElement {
-
   StatusElement.created() : super.created() {
     print("Status Created");
   }
 
   factory StatusElement(Settings optz, String env, String svc, Monitor mon) {
     var spot = new DivElement();
-    var load = new DivElement();//..classes.add("loader");
+    var load = new DivElement(); //..classes.add("loader");
 
     var obj = new DivElement()
       ..classes.add("wrap")
@@ -254,7 +256,8 @@ class Status {
     this.target = optz.svcz[svc].replaceFirst("\$", optz.envz[env]);
     this.target = this.target.replaceFirst("@", host);
 
-    if (optz.skip.contains(env + "-" + svc) || optz.skip.contains(svc + "-" + env)) {
+    if (optz.skip.contains(env + "-" + svc) ||
+        optz.skip.contains(svc + "-" + env)) {
       obj.classes.add('status-ignore');
     } else {
       obj.classes.add('status-loading');
@@ -264,7 +267,13 @@ class Status {
 
   done(int status) {
     if (last != null) last.cancel();
-    obj.classes.removeAll(['status-loading', 'status-ignore', 'status-ok', 'status-warn', 'status-bad']);
+    obj.classes.removeAll([
+      'status-loading',
+      'status-ignore',
+      'status-ok',
+      'status-warn',
+      'status-bad'
+    ]);
     if (200 <= status && status < 300) {
       obj.classes.add('status-ok');
     } else if (status == 429) {
@@ -284,7 +293,8 @@ class Status {
   }
 
   // after a timeout, wait for an animation frame to actually run things
-  run() => window.animationFrame.then((delta) => checker(this.target).then(done));
+  run() =>
+      window.animationFrame.then((delta) => checker(this.target).then(done));
 }
 
 Future<int> checker(String url) {
@@ -304,12 +314,14 @@ class Spinner {
     spinner = new DivElement()..classes.addAll(["spinner", "pie"]);
     filler = new DivElement()..classes.addAll(["filler", "pie"]);
     mask = new DivElement()..classes.add("mask");
-    this.loader..append(spinner)..append(filler)..append(mask)..classes.add("loader");
+    this.loader
+      ..append(spinner)
+      ..append(filler)
+      ..append(mask)
+      ..classes.add("loader");
   }
 
-  start(Duration dur) {
-
-  }
+  start(Duration dur) {}
 
   Stream get onComplete => done.stream;
 }
