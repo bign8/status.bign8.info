@@ -1,53 +1,38 @@
 import 'dart:html';
 import 'dart:math';
 import 'dart:async';
-import 'dart:convert';
+
 import 'settings.dart';
-
-enum State { UNKNOWN, GREEN, YELLOW, RED }
-
-String color(State s) {
-  switch (s) {
-    case State.GREEN:
-      return "green";
-    case State.YELLOW:
-      return "yellow";
-    case State.RED:
-      return "red";
-    default:
-      return "gray";
-  }
-}
+import 'state.dart';
+import 'grid.dart';
 
 class Application {
   final _host = window.location.origin.contains("localhost")
       ? "http://localhost:8081"
       : window.location.origin;
 
-  set state(State s) => _icon.href = "$_host/favicon.png?color=${color(s)}";
+  setState(State s) => _icon.href = "$_host/favicon.png?color=${color(s)}";
   final LinkElement _icon = () {
     List<LinkElement> links = document.getElementsByTagName("link");
     for (var link in links) if (link.rel == "icon") return link;
   }();
 
   SettingsManager options;
+  Grid table;
 
   Application() {
-    state = State.UNKNOWN;
+    setState(State.UNKNOWN);
     options = new SettingsManager();
   }
 
   void init() {
-    options.onChange.listen(_newSettings);
+    table = new Grid(_host, options.active);
+    options.onChange.listen(table.update);
+    table.onChange.listen(setState);
   }
 
   void run() {
-    print(JSON.encode(options.active));
-  }
-
-  void _newSettings(Settings opts) {
-    // TODO: determine difference and re-render page as necessary
-    print("new settings fired");
+    table.draw();
   }
 }
 
@@ -147,7 +132,7 @@ class StatusElement extends DivElement {
     // load.append(new DivElement()..classes.add("mask"));
 
     var spinner = new Spinner(load);
-    new Status(optz, spot, env, svc, spinner, mon);
+    new StatusV0(optz, spot, env, svc, spinner, mon);
 
     return obj;
   }
@@ -161,7 +146,7 @@ Duration jittered() {
   return new Duration(seconds: val + 30);
 }
 
-class Status {
+class StatusV0 {
   DivElement obj;
   String target;
   Timer last;
@@ -169,7 +154,8 @@ class Status {
   Monitor mon;
   String slug;
 
-  Status(Settings optz, this.obj, String env, String svc, this.spin, this.mon) {
+  StatusV0(
+      Settings optz, this.obj, String env, String svc, this.spin, this.mon) {
     slug = "$svc-$env";
     obj.classes.add('status');
     obj.onClick.listen((e) => run());
