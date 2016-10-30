@@ -2,6 +2,7 @@ import 'dart:html';
 import 'dart:math';
 import 'dart:async';
 import 'dart:convert';
+import 'settings.dart';
 
 enum State { UNKNOWN, GREEN, YELLOW, RED }
 
@@ -29,8 +30,17 @@ class Application {
     for (var link in links) if (link.rel == "icon") return link;
   }();
 
+  Settings options;
+
   Application() {
     state = State.UNKNOWN;
+    options = new Settings();
+  }
+
+  void init() {}
+
+  void run() {
+    print(JSON.encode(options));
   }
 }
 
@@ -41,9 +51,9 @@ final host = () {
   return window.location.origin;
 }();
 
-class Settings {
-  static final Settings _singleton = new Settings._internal();
-  factory Settings() => _singleton;
+class SettingsOld {
+  static final SettingsOld _singleton = new SettingsOld._internal();
+  factory SettingsOld() => _singleton;
 
   Map<String, String> svcz = new Map<String, String>();
   Map<String, String> envz = new Map<String, String>();
@@ -53,7 +63,7 @@ class Settings {
   JsonEncoder encoder;
   StreamController updates = new StreamController.broadcast();
 
-  Settings._internal() {
+  SettingsOld._internal() {
     open = new ButtonElement()
       ..classes.addAll(['click', 'open'])
       ..setInnerHtml('&#x2699;')
@@ -141,7 +151,10 @@ class Settings {
 }
 
 void main() {
-  Settings options = new Settings();
+  Application app = new Application();
+  app.init();
+  app.run();
+  SettingsOld options = new SettingsOld();
   TableElement table = new TableElement();
   document.body.append(table);
   new Monitor(table, options);
@@ -149,7 +162,7 @@ void main() {
 
 class Monitor {
   TableElement table;
-  Settings opts;
+  SettingsOld opts;
   List<StatusElement> statuses;
   Map<String, int> status;
 
@@ -213,7 +226,7 @@ class StatusElement extends DivElement {
     print("Status Created");
   }
 
-  factory StatusElement(Settings optz, String env, String svc, Monitor mon) {
+  factory StatusElement(SettingsOld optz, String env, String svc, Monitor mon) {
     var spot = new DivElement();
     var load = new DivElement(); //..classes.add("loader");
 
@@ -249,7 +262,8 @@ class Status {
   Monitor mon;
   String slug;
 
-  Status(Settings optz, this.obj, String env, String svc, this.spin, this.mon) {
+  Status(
+      SettingsOld optz, this.obj, String env, String svc, this.spin, this.mon) {
     slug = "$svc-$env";
     obj.classes.add('status');
     obj.onClick.listen((e) => run());
