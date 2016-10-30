@@ -1,4 +1,6 @@
 import 'dart:html';
+import 'dart:async' show StreamController, Stream;
+import 'dart:convert' show JSON, JsonEncoder;
 import 'package:json_object/json_object.dart';
 
 abstract class Options {
@@ -16,7 +18,7 @@ class Settings extends JsonObject implements Options {
       try {
         return new Settings.fromJsonString(window.localStorage[SID]);
       } catch (e, t) {
-        print('Problem Parsing Settings');
+        print('Problem Parsing Settings : (reverting to defaults)');
         print(e);
         print(t);
         return new Settings._init();
@@ -56,5 +58,79 @@ class Settings extends JsonObject implements Options {
   factory Settings.fromJsonString(string) =>
       new JsonObject.fromJsonString(string, new Settings._new());
 
+  void save() {
+    window.localStorage[SID] = JSON.encode(this);
+  }
+
   Duration interval() => new Duration(seconds: span);
+}
+
+class SettingsManager {
+  StreamController<Settings> _updates = new StreamController.broadcast();
+  Settings active;
+  DivElement dialog;
+  TextAreaElement input;
+  JsonEncoder encoder;
+
+  SettingsManager() {
+    active = new Settings();
+    encoder = new JsonEncoder.withIndent(' ');
+
+    document.body.append(new ButtonElement()
+      ..classes.addAll(['click', 'open'])
+      ..setInnerHtml('&#x2699;')
+      ..onClick.listen(open));
+
+    input = new TextAreaElement();
+
+    dialog = new DivElement()
+      ..classes.addAll(['cover', 'hide'])
+      ..onClick.listen(close)
+      ..append(new DivElement()
+        ..classes.add('cover-content')
+        ..onClick.listen(swallow) // only background clicks close
+        ..append(new ButtonElement()
+          ..classes.addAll(['click', 'close'])
+          ..setInnerHtml('&times;')
+          ..onClick.listen(close))
+        ..append(new ButtonElement()
+          ..classes.addAll(['click', 'save'])
+          ..setInnerHtml('&#x1f4be;')
+          ..onClick.listen(save))
+        ..append(input));
+
+    document.body.append(dialog);
+  }
+
+  void swallow(final MouseEvent e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  void open(final MouseEvent e) {
+    input.value = encoder.convert(active);
+    dialog.classes.remove('hide');
+  }
+
+  void close(final MouseEvent e) {
+    dialog.classes.add('hide');
+  }
+
+  void save(final MouseEvent e) {
+    try {
+      active = new Settings.fromJsonString(input.value);
+    } on FormatException catch (e) {
+      window.alert(e.toString().replaceFirst("FormatException: ", ""));
+      return;
+    } catch (e, t) {
+      window.alert('Failed to parse options\n$e');
+      print("$e\n$t");
+      return;
+    }
+    active.save();
+    close(e);
+    _updates.add(active);
+  }
+
+  Stream<Settings> get onChange => _updates.stream;
 }

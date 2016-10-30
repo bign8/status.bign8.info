@@ -30,17 +30,24 @@ class Application {
     for (var link in links) if (link.rel == "icon") return link;
   }();
 
-  Settings options;
+  SettingsManager options;
 
   Application() {
     state = State.UNKNOWN;
-    options = new Settings();
+    options = new SettingsManager();
   }
 
-  void init() {}
+  void init() {
+    options.onChange.listen(_newSettings);
+  }
 
   void run() {
-    print(JSON.encode(options));
+    print(JSON.encode(options.active));
+  }
+
+  void _newSettings(Settings opts) {
+    // TODO: determine difference and re-render page as necessary
+    print("new settings fired");
   }
 }
 
