@@ -58,118 +58,18 @@ final host = () {
   return window.location.origin;
 }();
 
-class SettingsOld {
-  static final SettingsOld _singleton = new SettingsOld._internal();
-  factory SettingsOld() => _singleton;
-
-  Map<String, String> svcz = new Map<String, String>();
-  Map<String, String> envz = new Map<String, String>();
-  Set<String> skip = new Set<String>();
-  HtmlElement dialog, open, close, save;
-  TextAreaElement input;
-  JsonEncoder encoder;
-  StreamController updates = new StreamController.broadcast();
-
-  SettingsOld._internal() {
-    open = new ButtonElement()
-      ..classes.addAll(['click', 'open'])
-      ..setInnerHtml('&#x2699;')
-      ..onClick.listen(openFn);
-    close = new ButtonElement()
-      ..classes.addAll(['click', 'close'])
-      ..setInnerHtml('&times;')
-      ..onClick.listen(closeFn);
-    save = new ButtonElement()
-      ..classes.addAll(['click', 'save'])
-      ..setInnerHtml('&#x1f4be;')
-      ..onClick.listen(saveFn);
-    input = new TextAreaElement();
-    dialog = new DivElement()
-      ..classes.addAll(['cover', 'hide'])
-      ..append(new DivElement()
-        ..classes.add('cover-content')
-        ..append(close)
-        ..append(save)
-        ..append(input));
-    document.body.append(dialog);
-    document.body.append(open);
-
-    // Setup JSON parser + initilize with localStorage data
-    encoder = new JsonEncoder.withIndent(' ');
-    if (window.localStorage.containsKey('status'))
-      assign(window.localStorage['status']);
-    else
-      assign("""{
-       "envz": {
-        "Google": "www.google.com",
-        "Twitter": "www.twitter.com",
-        "Facebook": "www.facebook.com",
-        "Github": "github.com",
-        "Snapchat": "www.snapchat.com",
-        "Instagram": "www.instagram.com"
-       },
-       "svcz": {
-        "Robots": "https://\$/robots.txt",
-        "Humans": "https://\$/humans.txt",
-        "service-1": "@/rand#demo-only",
-        "service-2": "@/rand#demo-only",
-        "service-3": "@/rand#demo-only"
-       },
-       "skip": [
-        "Instagram-Humans",
-        "Snapchat-Humans",
-        "Twitter-Humans"
-       ]
-      }""");
-  }
-
-  assign(String blob, {bool again: false}) {
-    var before = json();
-    try {
-      Map optz = JSON.decode(blob);
-      envz = optz['envz'];
-      svcz = optz['svcz'];
-      List s = optz['skip'];
-      skip = s.toSet();
-      window.localStorage['status'] = JSON.encode(json());
-      updates.add('updated');
-    } catch (e, t) {
-      String suffix = again ? '(double-fail)' : '(reverting)';
-      print('Problem Parsing Settings ' + suffix);
-      print(e);
-      print(t);
-      if (!again) assign(JSON.encode(before), again: true);
-    }
-  }
-
-  void openFn(MouseEvent e) {
-    input.value = encoder.convert(json());
-    dialog.classes.remove('hide');
-  }
-
-  void saveFn(MouseEvent e) {
-    assign(input.value);
-    closeFn(e);
-  }
-
-  Map json() => {'envz': envz, 'svcz': svcz, 'skip': skip.toList()};
-  closeFn(MouseEvent e) => dialog.classes.add('hide');
-  Stream get onChange => updates.stream;
-}
-
 void main() {
   Application app = new Application();
   app.init();
   app.run();
-  SettingsOld options = new SettingsOld();
   TableElement table = new TableElement();
   document.body.append(table);
-  new Monitor(table, options);
+  new Monitor(table, app.options);
 }
 
 class Monitor {
   TableElement table;
-  SettingsOld opts;
+  SettingsManager opts;
   List<StatusElement> statuses;
   Map<String, int> status;
 
@@ -186,15 +86,15 @@ class Monitor {
     table.setInnerHtml('');
     TableRowElement thead = table.createTHead().addRow();
     thead.addCell(); // empty corner
-    for (var env in opts.envz.keys) {
+    for (var env in opts.active.envz.keys) {
       thead.addCell().text = env;
     }
     TableSectionElement tbody = table.createTBody();
-    for (var key in opts.svcz.keys) {
+    for (var key in opts.active.svcz.keys) {
       TableRowElement row = tbody.addRow();
       row.addCell().text = key;
-      for (var env in opts.envz.keys) {
-        StatusElement nxt = new StatusElement(opts, env, key, this);
+      for (var env in opts.active.envz.keys) {
+        StatusElement nxt = new StatusElement(opts.active, env, key, this);
         statuses.add(nxt);
         row.addCell().append(nxt);
       }
@@ -233,7 +133,7 @@ class StatusElement extends DivElement {
     print("Status Created");
   }
 
-  factory StatusElement(SettingsOld optz, String env, String svc, Monitor mon) {
+  factory StatusElement(Settings optz, String env, String svc, Monitor mon) {
     var spot = new DivElement();
     var load = new DivElement(); //..classes.add("loader");
 
@@ -269,16 +169,15 @@ class Status {
   Monitor mon;
   String slug;
 
-  Status(
-      SettingsOld optz, this.obj, String env, String svc, this.spin, this.mon) {
+  Status(Settings optz, this.obj, String env, String svc, this.spin, this.mon) {
     slug = "$svc-$env";
     obj.classes.add('status');
     obj.onClick.listen((e) => run());
     this.target = optz.svcz[svc].replaceFirst("\$", optz.envz[env]);
     this.target = this.target.replaceFirst("@", host);
 
-    if (optz.skip.contains(env + "-" + svc) ||
-        optz.skip.contains(svc + "-" + env)) {
+    if (optz.noop.contains(env + "-" + svc) ||
+        optz.noop.contains(svc + "-" + env)) {
       obj.classes.add('status-ignore');
     } else {
       obj.classes.add('status-loading');
