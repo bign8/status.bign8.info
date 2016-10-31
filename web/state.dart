@@ -37,3 +37,5 @@ String state2class(State s) {
       return 'status-loading';
   }
 }
+
+State maxState(State a, State b) => a.index > b.index ? a : b;
