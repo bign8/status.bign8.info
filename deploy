@@ -1,8 +1,16 @@
 #! /bin/bash
 
 go generate
-GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
-# docker run -v $PWD:/data --rm lalyos/upx status # upx status
+
+# GO must be built in a container because the latest OSX (sierra) messes with file signatures
+# GOOS=linux GOARCH=amd64 go build -ldflags="-s -w"
+docker run --rm -v "$PWD":/usr/src/status -w /usr/src/status golang go build -ldflags="-s -w" -v
+
+# UPX no longer installs on latest OSX (sierra)
+# upx status
+docker run -v $PWD:/data --rm lalyos/upx status
+
+# Upload and Deploy File
 scp -i ~/Atlas.pem status ec2-user@status.bign8.info:/usr/sbin/status-server.new
 ssh -T -i ~/Atlas.pem ec2-user@status.bign8.info <<EOF
   sudo kill -9 \$(sudo lsof -ti tcp:8081)

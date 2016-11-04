@@ -50,6 +50,7 @@ class Status {
       state = State.UNKNOWN;
   }
 
+  // https://www.awsarchitectureblog.com/2015/03/backoff.html
   Duration get _jitter {
     int val = _rander.nextInt(interval);
     return new Duration(seconds: val > 20 ? val : 20);

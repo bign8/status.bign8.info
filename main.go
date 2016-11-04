@@ -229,6 +229,9 @@ func main() {
 				TLSClientConfig: &tls.Config{
 					InsecureSkipVerify: *skip,
 				},
+				IdleConnTimeout:    time.Minute,
+				DisableKeepAlives:  true,
+				DisableCompression: true,
 			},
 		},
 		cache: make(map[string]*req),
