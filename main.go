@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"math/rand"
 	"net/http"
+	"net/http/httputil"
 	_ "net/http/pprof"
 	"net/url"
 	"runtime"
@@ -216,6 +217,13 @@ func favicon(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func travis(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	b, _ := httputil.DumpRequest(r, false)
+	fmt.Printf("---- START ----\n%s\n%#v\n---- STOP ----\n", b, r.Form)
+	w.Write([]byte("OK"))
+}
+
 func main() {
 	flag.Parse()
 	runStat := expvar.NewMap("runtime")
@@ -249,6 +257,7 @@ func main() {
 	http.HandleFunc("/rand", random)
 	http.HandleFunc("/favicon.png", favicon)
 	http.HandleFunc("/", index)
+	http.HandleFunc("/api/ci/travis", travis)
 
 	if *skip {
 		fmt.Println("Serving from " + *port + " skipping SSL validation")
