@@ -29,7 +29,7 @@ import (
 	"sync"
 	"time"
 
-	"./build" // generated source files for website
+	"github.com/bign8/status.bign8.info/build" // generated source files for website
 )
 
 var (
