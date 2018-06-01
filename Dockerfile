@@ -6,7 +6,7 @@ RUN go build -o status -ldflags="-s -w" -v
 
 # TODO: use upx to compress output binary
 
-FROM scratch
+FROM alpine
 EXPOSE 8081
 COPY --from=go /go/src/github.com/bign8/status.bign8.info/status /
 ENTRYPOINT ["/status"]
