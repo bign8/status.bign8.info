@@ -1,4 +1,3 @@
 status:
-	go generate
-	docker build -t bign8/status .
+	docker build -t bign8/status:latest .
 .PHONY : status

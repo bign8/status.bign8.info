@@ -6,9 +6,9 @@ import 'state.dart';
 import 'grid.dart';
 
 class Application {
-  final _host = window.location.origin.contains("localhost")
+  var _host = window.location.origin.contains("localhost")
       ? "http://localhost:8081"
-      : window.location.origin;
+      : window.location.href;
 
   setState(State s) => _icon.href = "$_host/favicon.png?color=${color(s)}";
   final LinkElement _icon = () {
@@ -20,6 +20,7 @@ class Application {
   Grid table;
 
   Application() {
+    if (_host.endsWith('/')) _host = _host.substring(0, _host.length - 1);
     setState(State.UNKNOWN);
     options = new SettingsManager();
   }
