@@ -24,14 +24,11 @@ RUN pub build
 # Golang builder
 # Builds static assets, bundles them with go-bindata and compiles go application
 # - https://medium.com/@kelseyhightower/b5696e26eb07
-FROM golang:1.10-alpine as go
-WORKDIR /go/src/github.com/bign8/status.bign8.info/
-RUN apk add --no-cache git
-RUN go get github.com/jteeuwen/go-bindata/...
+FROM golang:1.16-alpine as go
+WORKDIR /go/src
 COPY --from=sass /style.css build/web/
 COPY --from=dart /app/build/web/ build/web/
-RUN go-bindata -o build/static.go -pkg build -prefix build/web build/web
-ADD /main.go .
+ADD go.mod main.go ./
 RUN CGO_ENABLED=0 go build -o status -ldflags="-s -w" -v
 
 # TODO: use upx to compress output binary
@@ -41,5 +38,5 @@ RUN CGO_ENABLED=0 go build -o status -ldflags="-s -w" -v
 # Pulls components from previous build phases to create final container
 FROM scratch
 EXPOSE 8081
-COPY --from=go /go/src/github.com/bign8/status.bign8.info/status /
+COPY --from=go /go/src/status /
 ENTRYPOINT ["/status"]

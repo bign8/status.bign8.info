@@ -6,11 +6,11 @@ package main
 //go:generate sed -i.bak -e /stylesheet/{ -e rbuild/web/style.css -e d -e } build/web/index.html
 //go:generate rm build/web/style.css.bak build/web/style.css build/web/index.html.bak
 //go:generate rm -r build/web/packages
-//go:generate go-bindata -o build/static.go -pkg build -prefix build/web build/web
 
 import (
 	"bytes"
 	"crypto/tls"
+	"embed"
 	"expvar"
 	"flag"
 	"fmt"
@@ -18,6 +18,7 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
+	"io/fs"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -25,12 +26,12 @@ import (
 	"net/url"
 	"runtime"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
-
-	"github.com/bign8/status.bign8.info/build" // generated source files for website
 )
+
+//go:embed build/web
+var web embed.FS
 
 var (
 	port = flag.String("port", ":8081", "port to serve from")
@@ -127,22 +128,6 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Write(obj.body)
 }
 
-func index(w http.ResponseWriter, r *http.Request) {
-	uri := r.URL.RequestURI()
-	if uri == "/" {
-		uri = "/index.html"
-	}
-	bits, err := build.Asset(uri[1:])
-	if err != nil {
-		http.NotFound(w, r)
-	} else {
-		if strings.HasSuffix(uri, ".css") {
-			w.Header().Add("Content-Type", "text/css")
-		}
-		w.Write(bits)
-	}
-}
-
 func random(w http.ResponseWriter, r *http.Request) {
 	switch rand.Intn(10) {
 	case 0:
@@ -221,6 +206,10 @@ func main() {
 	runStat := expvar.NewMap("runtime")
 	runStat.Set("routines", expvar.Func(func() interface{} { return runtime.NumGoroutine() }))
 	runStat.Set("cgo", expvar.Func(func() interface{} { return runtime.NumCgoCall() }))
+	root, err := fs.Sub(web, "build/web")
+	if err != nil {
+		panic(err)
+	}
 
 	proxier := &proxy{
 		client: &http.Client{
@@ -248,7 +237,7 @@ func main() {
 	http.Handle("/proxy", proxier)
 	http.HandleFunc("/rand", random)
 	http.HandleFunc("/favicon.png", favicon)
-	http.HandleFunc("/", index)
+	http.Handle("/", http.FileServer(http.FS(root)))
 
 	if *skip {
 		fmt.Println("Serving from " + *port + " skipping SSL validation")
