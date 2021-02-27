@@ -121,6 +121,9 @@ func (p *proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for key, value := range obj.head {
+		if key == "Set-Cookie" {
+			continue // don't set cookies plz
+		}
 		w.Header()[key] = value
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
