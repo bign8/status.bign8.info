@@ -1,17 +1,14 @@
 import 'dart:html';
 import 'dart:async' show StreamController, Stream;
-import 'dart:convert' show JSON, JsonEncoder;
-import 'package:json_object/json_object.dart';
+import 'dart:convert' show json, JsonEncoder;
 
-abstract class Options {
+class Settings {
+  static const String SID = "status-options";
+
   Map<String, String> svcz;
   Map<String, String> envz;
   List<String> noop;
   int span; // update interval in seconds
-}
-
-class Settings extends JsonObject implements Options {
-  static const String SID = "status-options";
 
   factory Settings() {
     if (window.localStorage.containsKey(SID)) {
@@ -55,11 +52,17 @@ class Settings extends JsonObject implements Options {
       ..span = 90;
   }
 
-  factory Settings.fromJsonString(string) =>
-      new JsonObject.fromJsonString(string, new Settings._new());
+  factory Settings.fromJsonString(string) {
+    dynamic obj = json.decode(string);
+    return new Settings._new()
+      ..envz = obj["envz"] as Map<String, String>
+      ..svcz = obj["svcz"] as Map<String, String>
+      ..noop = obj["noop"] as List<String>
+      ..span = obj["span"] as int;
+  }
 
   void save() {
-    window.localStorage[SID] = JSON.encode(this);
+    window.localStorage[SID] = json.encode(this);
   }
 
   Duration interval() => new Duration(seconds: span);

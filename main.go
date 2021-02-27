@@ -30,7 +30,7 @@ import (
 	"time"
 )
 
-//go:embed build/web
+//go:embed web
 var web embed.FS
 
 var (
@@ -206,7 +206,7 @@ func main() {
 	runStat := expvar.NewMap("runtime")
 	runStat.Set("routines", expvar.Func(func() interface{} { return runtime.NumGoroutine() }))
 	runStat.Set("cgo", expvar.Func(func() interface{} { return runtime.NumCgoCall() }))
-	root, err := fs.Sub(web, "build/web")
+	root, err := fs.Sub(web, "web")
 	if err != nil {
 		panic(err)
 	}

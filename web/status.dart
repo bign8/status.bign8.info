@@ -73,8 +73,8 @@ class Status {
     var completer = new Completer<int>();
     new HttpRequest()
       ..open('GET', '$host/proxy?url=$url', async: true)
-      ..onLoad.listen((e) => completer.complete(e.target.status))
-      ..onError.listen((e) => completer.complete(e.target.status))
+      ..onLoad.listen((e) => completer.complete((e.target as HttpRequest).status))
+      ..onError.listen((e) => completer.complete((e.target as HttpRequest).status))
       ..send();
     return completer.future;
   }

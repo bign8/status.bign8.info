@@ -25,8 +25,6 @@ State code2state(int code) {
 
 String state2class(State s) {
   switch (s) {
-    case State.UNKNOWN:
-      return 'status-ignore';
     case State.GREEN:
       return 'status-ok';
     case State.YELLOW:
@@ -35,6 +33,8 @@ String state2class(State s) {
       return 'status-bad';
     case State.LOADING:
       return 'status-loading';
+    default:
+      return 'status-ignore';
   }
 }
 

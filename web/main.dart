@@ -12,7 +12,7 @@ class Application {
 
   setState(State s) => _icon.href = "$_host/favicon.png?color=${color(s)}";
   final LinkElement _icon = () {
-    List<LinkElement> links = document.getElementsByTagName("link");
+    var links = document.getElementsByTagName("link").cast<LinkElement>();
     for (var link in links) if (link.rel == "icon") return link;
   }();
 
