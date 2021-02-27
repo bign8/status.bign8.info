@@ -4,6 +4,8 @@ pubspec.lock
 .buildlog
 .packages
 .project
-.pub/
+.pub
+.dart_tool
 status
 style.css*
+main.dart.js*
