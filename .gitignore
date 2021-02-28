@@ -9,3 +9,4 @@ pubspec.lock
 status
 style.css*
 main.dart.js*
+*.g.dart

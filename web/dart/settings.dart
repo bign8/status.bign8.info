@@ -2,69 +2,58 @@ import 'dart:html';
 import 'dart:async' show StreamController, Stream;
 import 'dart:convert' show json, JsonEncoder;
 
+import 'package:json_annotation/json_annotation.dart';
+
+part 'settings.g.dart';
+
+@JsonSerializable(nullable: false)
 class Settings {
   static const String SID = "status-options";
 
-  Map<String, String> svcz;
-  Map<String, String> envz;
-  List<String> noop;
-  int span; // update interval in seconds
+  final Map<String, String> svcz;
+  final Map<String, String> envz;
+  final List<String> noop;
+  final int span;
+  Settings({this.svcz, this.envz, this.noop, this.span});
+  factory Settings.fromJson(Map<String, dynamic> json) => _$SettingsFromJson(json);
+  Map<String, dynamic> toJson() => _$SettingsToJson(this);
 
-  factory Settings() {
+  factory Settings.fromEnv() {
     if (window.localStorage.containsKey(SID)) {
       try {
-        return new Settings.fromJsonString(window.localStorage[SID]);
+        return new Settings.fromJson(json.decode(window.localStorage[SID]));
       } catch (e, t) {
         print('Problem Parsing Settings : (reverting to defaults)');
         print(e);
         print(t);
-        return new Settings._init();
       }
-    } else {
-      return new Settings._init();
     }
+    return Settings.defaults();
   }
-
-  Settings._new() {
-    svcz = new Map<String, String>();
-    envz = new Map<String, String>();
-    noop = new List<String>();
-  }
-
-  factory Settings._init() {
-    return new Settings._new()
-      ..envz.addAll({
+  factory Settings.defaults() {
+    return Settings(
+      envz: {
         "Google": "www.google.com",
         "Twitter": "www.twitter.com",
         "Facebook": "www.facebook.com",
         "Github": "github.com",
         "Snapchat": "www.snapchat.com",
         "Instagram": "www.instagram.com"
-      })
-      ..svcz.addAll({
+      },
+      svcz: {
         "Robots": "https://\$/robots.txt",
         "Humans": "https://\$/humans.txt",
         "service-1": "@/rand#demo",
         "service-2": "@/rand#demo",
         "service-3": "@/rand#demo"
-      })
-      ..noop.addAll(["Instagram-Humans", "Snapchat-Humans", "Twitter-Humans"])
-      ..span = 90;
+      },
+      noop: ["Instagram-Humans", "Snapchat-Humans", "Twitter-Humans"],
+      span: 90,
+    );
   }
-
-  factory Settings.fromJsonString(string) {
-    dynamic obj = json.decode(string);
-    return new Settings._new()
-      ..envz = obj["envz"] as Map<String, String>
-      ..svcz = obj["svcz"] as Map<String, String>
-      ..noop = obj["noop"] as List<String>
-      ..span = obj["span"] as int;
-  }
-
   void save() {
-    window.localStorage[SID] = json.encode(this);
+    window.localStorage[SID] = json.encode(this.toJson());
   }
-
   Duration interval() => new Duration(seconds: span);
 }
 
@@ -76,7 +65,7 @@ class SettingsManager {
   JsonEncoder encoder;
 
   SettingsManager() {
-    active = new Settings();
+    active = new Settings.fromEnv();
     encoder = new JsonEncoder.withIndent(' ');
 
     document.body.append(new ButtonElement()
@@ -121,7 +110,7 @@ class SettingsManager {
 
   void save(final MouseEvent e) {
     try {
-      active = new Settings.fromJsonString(input.value);
+      active = new Settings.fromJson(json.decode(input.value));
     } on FormatException catch (e) {
       window.alert(e.toString().replaceFirst("FormatException: ", ""));
       return;
