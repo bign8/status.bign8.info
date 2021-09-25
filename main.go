@@ -24,6 +24,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"net/url"
+	"os"
 	"runtime"
 	"strconv"
 	"sync"
@@ -33,8 +34,15 @@ import (
 //go:embed build/web
 var web embed.FS
 
+func str(key, def string) string {
+	if v := os.Getenv(key); v != `` {
+		return v
+	}
+	return def
+}
+
 var (
-	port = flag.String("port", ":8081", "port to serve from")
+	port = flag.String("port", ":"+str("PORT", "8081"), "port to serve from")
 	skip = flag.Bool("skip", true, "should the proxy skip ssl verify")
 	tout = flag.Duration("tout", time.Second, "cache expiration timeout")
 )
