@@ -14,5 +14,5 @@ $DKR google/dart:2 ./ship.sh dart
 go build -o status -ldflags="-s -w" -v .
 gzip -f status
 scp status.gz me.bign8.info:/opt/bign8
-ssh me.bign8.info -- sudo systemctl restart status
+ssh me.bign8.info -- sudo systemctl restart bign8@status.service
 rm status.gz
